@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Catálogo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Catálogo de modelos 3D</h1>
+    <a href="{% url 'printing:upload' %}" class="btn btn-primary"> Imprimir mi pieza</a>
+</div>
+
+<!-- Barra de filtros -->
+<form method="get" style="margin-bottom: 1.5rem;">
+    <div class="filter-bar">
+        <input type="text" name="q" class="search-input"
+               placeholder="Buscar modelos..." value="{{ query|default:'' }}">
+
+        <select name="tipo" class="filter-select" onchange="this.form.submit()">
+            <option value="">Todos los tipos</option>
+            <option value="modelo" {% if selected_tipo == 'modelo' %}selected{% endif %}>Modelos 3D</option>
+            <option value="filamento" {% if selected_tipo == 'filamento' %}selected{% endif %}>Filamentos</option>
+            <option value="consumible" {% if selected_tipo == 'consumible' %}selected{% endif %}>Consumibles</option>
+        </select>
+
+        <select name="category" class="filter-select" onchange="this.form.submit()">
+            <option value="">Todas las categorías</option>
+            {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>
+                    {{ cat.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button type="submit" class="btn btn-outline">Buscar</button>
+        {% if query or selected_tipo or selected_category %}
+            <a href="{% url 'store:catalog' %}" class="btn btn-secondary">Limpiar</a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Grid de productos -->
+{% if products %}
+    <div class="products-grid">
+        {% for product in products %}
+            <div class="product-card">
+                {% if product.imagen %}
+                    <img src="{{ product.imagen.url }}" alt="{{ product.name }}" class="product-img">
+                {% else %}
+                    <div class="product-img-placeholder">
+                        {% if product.tiene_stl %}{% else %}{% endif %}
+                    </div>
+                {% endif %}
+
+                <div class="product-info">
+                    <span class="product-category">{{ product.category.name }}</span>
+                    <div class="product-name">{{ product.name }}</div>
+                    <div class="product-desc">{{ product.description|truncatewords:18 }}</div>
+
+                    <div class="product-footer">
+                        <span class="product-price">{{ product.base_price }} €</span>
+                        <div class="product-actions">
+                            <a href="{% url 'store:product_detail' product.pk %}" class="btn btn-sm btn-outline">
+                                Ver detalle
+                            </a>
+                        </div>
+                    </div>
+                    {% if product.stock > 0 %}
+                        <span class="stock-info"> {{ product.stock }} en stock</span>
+                    {% else %}
+                        <span class="stock-info" style="color: var(--danger);">Sin stock</span>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div style="text-align: center; padding: 4rem 0; color: var(--text-muted);">
+        <div style="font-size: 3rem; margin-bottom: 1rem;"></div>
+        <p>No hay productos que coincidan con tu búsqueda.</p>
+        <a href="{% url 'store:catalog' %}" class="btn btn-outline" style="margin-top: 1rem;">Ver todo el catálogo</a>
+    </div>
+{% endif %}
+{% endblock %}

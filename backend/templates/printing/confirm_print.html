@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Confirmar impresión{% endblock %}
+
+{% block content %}
+<div class="confirm-page">
+    <div class="confirm-card">
+        <h1> Análisis completado</h1>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+            Hemos analizado tu archivo <strong>{{ custom_stl.nombre_archivo }}</strong>. Aquí tienes el desglose:
+        </p>
+
+        <!-- Métricas calculadas -->
+        <div class="metrics-grid">
+            <div class="metric-box">
+                <span class="metric-icon"></span>
+                <span class="metric-value">{{ custom_stl.volume_cm3 }} cm³</span>
+                <span class="metric-label">Volumen</span>
+            </div>
+            <div class="metric-box">
+                <span class="metric-icon"></span>
+                <span class="metric-value">{{ custom_stl.estimated_weight_gr }} g</span>
+                <span class="metric-label">Peso estimado</span>
+            </div>
+            <div class="metric-box highlight">
+                <span class="metric-icon"></span>
+                <span class="metric-value">{{ custom_stl.calculated_price }} €</span>
+                <span class="metric-label">Precio total</span>
+            </div>
+        </div>
+
+        <!-- Notas del cliente -->
+        {% if custom_stl.notas_cliente %}
+            <div style="background: var(--bg); padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem; text-align: left;">
+                <strong>Tus notas:</strong>
+                <p style="margin-top: 0.3rem; color: var(--text-muted);">{{ custom_stl.notas_cliente }}</p>
+            </div>
+        {% endif %}
+
+        <!-- Desglose del precio -->
+        <div style="background: var(--bg); padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem; text-align: left; font-size: 0.88rem;">
+            <strong>Desglose del precio:</strong>
+            <table style="width:100%; margin-top: 0.5rem;">
+                <tr>
+                    <td style="color: var(--text-muted);">Material ({{ custom_stl.estimated_weight_gr }}g × 0,05€/g)</td>
+                    <td style="text-align:right;">{{ custom_stl.estimated_weight_gr|floatformat:2 }} × 0,05 €</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted);">Gastos operativos fijos</td>
+                    <td style="text-align:right;">2,00 €</td>
+                </tr>
+                <tr>
+                    <td style="color: var(--text-muted);">Margen (25%)</td>
+                    <td style="text-align:right;">incluido</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Acciones -->
+        <div class="confirm-actions">
+            <form method="post" action="{% url 'cart:add' %}">
+                {% csrf_token %}
+                <input type="hidden" name="item_id" value="{{ custom_stl.pk }}">
+                <input type="hidden" name="is_custom" value="true">
+                <input type="hidden" name="quantity" value="1">
+                <button type="submit" class="btn btn-primary btn-lg btn-full">
+                     Añadir al carrito ({{ custom_stl.calculated_price }} €)
+                </button>
+            </form>
+            <a href="{% url 'printing:upload' %}" class="btn btn-outline btn-full">
+                ← Subir otro archivo
+            </a>
+            <a href="{% url 'store:catalog' %}" class="btn btn-secondary btn-full">
+                Seguir comprando
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

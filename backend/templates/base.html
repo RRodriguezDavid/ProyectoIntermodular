@@ -1,0 +1,72 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Print3D Shop{% endblock %} — Print3D Shop</title>
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+    <a href="{% url 'store:catalog' %}" class="navbar-brand"> Print3D Shop</a>
+
+    <div class="navbar-links">
+        <a href="{% url 'store:catalog' %}">Catálogo</a>
+        <a href="{% url 'store:filaments' %}">Filamentos</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'printing:upload' %}">Imprimir pieza</a>
+        {% endif %}
+    </div>
+
+    <div class="navbar-actions">
+        {% if user.is_authenticated %}
+            {% if user.is_staff %}
+                <a href="{% url 'admin:index' %}" class="btn btn-sm btn-admin"> Admin</a>
+            {% endif %}
+            <a href="{% url 'cart:detail' %}" class="cart-btn">
+                 Carrito
+                {% if request.session.cart %}
+                    <span class="cart-badge">
+                        {% with total=0 %}
+                            {% for key, item in request.session.cart.items %}
+                                {{ item.quantity }}
+                            {% endfor %}
+                        {% endwith %}
+                    </span>
+                {% endif %}
+            </a>
+            <a href="{% url 'users:profile' %}">{{ user.username }}</a>
+            <a href="{% url 'users:logout' %}">Salir</a>
+        {% else %}
+            <a href="{% url 'users:login' %}" class="btn btn-sm btn-outline">Iniciar sesión</a>
+            <a href="{% url 'users:register' %}" class="btn btn-sm btn-primary">Registrarse</a>
+        {% endif %}
+    </div>
+</nav>
+
+<!-- Mensajes flash -->
+{% if messages %}
+<div class="messages-container">
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Contenido principal -->
+<main class="main-content">
+    {% block content %}{% endblock %}
+</main>
+
+<!-- Footer -->
+<footer style="background: var(--text); color: rgba(255,255,255,0.6); text-align: center; padding: 1.5rem; font-size: 0.85rem; margin-top: auto;">
+    Print3D Shop &mdash; TFG DAM 2024/2025
+</footer>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

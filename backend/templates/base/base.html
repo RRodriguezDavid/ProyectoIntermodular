@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Print3D Shop{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<nav class="navbar">
+    <a href="{% url 'store:catalog' %}" class="navbar-brand">Print3D Shop</a>
+
+    <div class="navbar-links">
+        <a href="{% url 'store:catalog' %}">Catalogo</a>
+        <a href="{% url 'store:filaments' %}">Filamentos</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'printing:upload' %}">Impresion personalizada</a>
+        {% endif %}
+    </div>
+
+    <div class="navbar-actions">
+        <a href="{% url 'cart:detail' %}" class="cart-btn">
+            Carrito
+            {% if request.session.cart %}
+                <span class="cart-badge">{{ request.session.cart|length }}</span>
+            {% endif %}
+        </a>
+
+        {% if user.is_authenticated %}
+            {% if user.is_staff %}
+                <a href="{% url 'admin:index' %}" class="btn btn-admin">Administracion</a>
+            {% endif %}
+            <a href="{% url 'orders:my_orders' %}">Mis pedidos</a>
+            <a href="{% url 'users:logout' %}">Cerrar sesion</a>
+        {% else %}
+            <a href="{% url 'users:login' %}" class="btn btn-primary">Iniciar sesion</a>
+            <a href="{% url 'users:register' %}">Registrarse</a>
+        {% endif %}
+    </div>
+</nav>
+
+{% if messages %}
+<div class="messages-container">
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<main class="main-content">
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+    <p>Print3D Shop &copy; 2025 - TFG DAM</p>
+</footer>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

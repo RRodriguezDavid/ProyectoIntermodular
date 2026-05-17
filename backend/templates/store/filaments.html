@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Filamentos y consumibles{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Filamentos y consumibles</h1>
+</div>
+
+<!-- Filamentos -->
+{% if filamentos %}
+<div class="section">
+    <h2> Filamentos</h2>
+    <div class="products-grid">
+        {% for product in filamentos %}
+            <div class="product-card">
+                {% if product.imagen %}
+                    <img src="{{ product.imagen.url }}" alt="{{ product.name }}" class="product-img">
+                {% else %}
+                    <div class="product-img-placeholder"></div>
+                {% endif %}
+                <div class="product-info">
+                    <span class="product-category">{{ product.category.name }}</span>
+                    <div class="product-name">{{ product.name }}</div>
+                    <div class="product-desc">{{ product.description|truncatewords:15 }}</div>
+                    <div class="product-footer">
+                        <span class="product-price">{{ product.base_price }} €</span>
+                        <a href="{% url 'store:product_detail' product.pk %}" class="btn btn-sm btn-outline">Ver</a>
+                    </div>
+                    {% if product.stock > 0 %}
+                        <span class="stock-info"> {{ product.stock }} en stock</span>
+                    {% else %}
+                        <span class="stock-info" style="color: var(--danger);">Sin stock</span>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Consumibles -->
+{% if consumibles %}
+<div class="section">
+    <h2> Consumibles</h2>
+    <div class="products-grid">
+        {% for product in consumibles %}
+            <div class="product-card">
+                {% if product.imagen %}
+                    <img src="{{ product.imagen.url }}" alt="{{ product.name }}" class="product-img">
+                {% else %}
+                    <div class="product-img-placeholder"></div>
+                {% endif %}
+                <div class="product-info">
+                    <span class="product-category">{{ product.category.name }}</span>
+                    <div class="product-name">{{ product.name }}</div>
+                    <div class="product-desc">{{ product.description|truncatewords:15 }}</div>
+                    <div class="product-footer">
+                        <span class="product-price">{{ product.base_price }} €</span>
+                        <a href="{% url 'store:product_detail' product.pk %}" class="btn btn-sm btn-outline">Ver</a>
+                    </div>
+                    {% if product.stock > 0 %}
+                        <span class="stock-info"> {{ product.stock }} en stock</span>
+                    {% else %}
+                        <span class="stock-info" style="color: var(--danger);">Sin stock</span>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if not filamentos and not consumibles %}
+    <div style="text-align: center; padding: 4rem 0; color: var(--text-muted);">
+        <div style="font-size: 3rem; margin-bottom: 1rem;"></div>
+        <p>No hay filamentos ni consumibles disponibles de momento.</p>
+    </div>
+{% endif %}
+{% endblock %}

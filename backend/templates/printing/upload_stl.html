@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Imprimir mi diseño{% endblock %}
+
+{% block content %}
+<div class="upload-page">
+    <div class="upload-card">
+        <h1> Imprimir mi diseño</h1>
+        <p class="upload-subtitle">
+            Sube tu archivo STL y calculamos el precio al instante según el volumen real de la pieza.
+        </p>
+
+        <!-- Cómo funciona -->
+        <div class="how-it-works">
+            <div class="step-item">
+                <span style="font-size: 1.5rem;"></span>
+                <span>Sube tu STL</span>
+            </div>
+            <span class="step-arrow">→</span>
+            <div class="step-item">
+                <span style="font-size: 1.5rem;"></span>
+                <span>Calculamos el precio</span>
+            </div>
+            <span class="step-arrow">→</span>
+            <div class="step-item">
+                <span style="font-size: 1.5rem;"></span>
+                <span>Añades al carrito</span>
+            </div>
+            <span class="step-arrow">→</span>
+            <div class="step-item">
+                <span style="font-size: 1.5rem;"></span>
+                <span>Recibes en casa</span>
+            </div>
+        </div>
+
+        <!-- Formulario de subida -->
+        <form method="post" enctype="multipart/form-data" class="upload-form">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label>Archivo STL</label>
+                <div class="file-drop-zone" id="dropZone">
+                    <div class="drop-icon"></div>
+                    <p><strong>Arrastra tu archivo aquí</strong> o haz clic para seleccionarlo</p>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.3rem;">
+                        Solo se aceptan archivos .stl
+                    </p>
+                    <input type="file" name="stl_file" id="stlFile" class="file-input"
+                           accept=".stl" required>
+                    <div class="file-name-display" id="fileName"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="notas">Notas de impresión (opcional)</label>
+                <textarea id="notas" name="notas" class="form-control" rows="3"
+                          placeholder="Color preferido, relleno, escala... cualquier indicación para el operario."></textarea>
+            </div>
+
+            <!-- Info sobre el cálculo -->
+            <div class="price-info-box">
+                <h4> ¿Cómo se calcula el precio?</h4>
+                <p>Analizamos el volumen exacto de tu pieza con <strong>numpy-stl</strong> y aplicamos la fórmula:</p>
+                <p style="margin-top: 0.4rem; font-family: monospace; background: white; padding: 0.5rem; border-radius: 6px;">
+                    Precio = (Peso × 0,05 €/g + 2 € fijos) × 1,25 margen
+                </p>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg">
+                 Subir y calcular precio
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const fileInput = document.getElementById('stlFile');
+const fileName  = document.getElementById('fileName');
+const dropZone  = document.getElementById('dropZone');
+
+fileInput.addEventListener('change', function () {
+    if (this.files.length > 0) {
+        fileName.textContent = ' ' + this.files[0].name;
+    }
+});
+
+// Drag & drop visual feedback
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+        fileName.textContent = ' ' + e.dataTransfer.files[0].name;
+    }
+});
+</script>
+{% endblock %}

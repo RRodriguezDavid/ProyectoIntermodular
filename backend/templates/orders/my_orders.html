@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Mis pedidos{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1> Mis pedidos</h1>
+    <a href="{% url 'store:catalog' %}" class="btn btn-outline">Seguir comprando</a>
+</div>
+
+{% if orders %}
+    <div class="orders-list">
+        {% for order in orders %}
+            <div class="order-card status-{{ order.status|lower }}">
+                <div class="order-header">
+                    <div>
+                        <span class="order-id">Pedido #{{ order.id }}</span>
+                        <span class="status-badge status-{{ order.status|lower }}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap: 1rem;">
+                        <span class="order-total">{{ order.total_price }} €</span>
+                        <a href="{% url 'orders:order_detail' order.pk %}" class="btn btn-sm btn-outline">Ver detalle</a>
+                    </div>
+                </div>
+
+                <div class="order-date">
+                     Realizado el {{ order.created_at|date:"d/m/Y" }} a las {{ order.created_at|time:"H:i" }}
+                </div>
+
+                <!-- Barra de progreso de estados -->
+                <div class="progress-steps" style="margin-top: 0.75rem;">
+                    {% with s=order.status %}
+                        <span class="step {% if s == 'PAID' or s == 'PRINTING' or s == 'SHIPPED' or s == 'DELIVERED' %}done{% endif %}">
+                            Pagado
+                        </span>
+                        <span class="step {% if s == 'PRINTING' or s == 'SHIPPED' or s == 'DELIVERED' %}done{% endif %}">
+                            Imprimiendo
+                        </span>
+                        <span class="step {% if s == 'SHIPPED' or s == 'DELIVERED' %}done{% endif %}">
+                            Enviado
+                        </span>
+                        <span class="step {% if s == 'DELIVERED' %}done{% endif %}">
+                            Entregado
+                        </span>
+                    {% endwith %}
+                </div>
+
+                <!-- Líneas del pedido -->
+                {% if order.items.all %}
+                    <div class="order-items">
+                        {% for item in order.items.all %}
+                            <div class="order-item-row">
+                                <span>
+                                    {% if item.product %}
+                                        {{ item.product.name }}
+                                    {% else %}
+                                         Impresión personalizada
+                                    {% endif %}
+                                    ×{{ item.quantity }}
+                                </span>
+                                <span>{{ item.subtotal }} €</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+{% else %}
+    <div style="text-align: center; padding: 4rem 0; color: var(--text-muted);">
+        <div style="font-size: 4rem; margin-bottom: 1rem;"></div>
+        <h2 style="margin-bottom: 0.5rem;">No tienes pedidos todavía</h2>
+        <p>¡Explora el catálogo y haz tu primer pedido!</p>
+        <a href="{% url 'store:catalog' %}" class="btn btn-primary" style="margin-top: 1.5rem;">Ver catálogo</a>
+    </div>
+{% endif %}
+{% endblock %}

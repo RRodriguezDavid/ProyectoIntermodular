@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Finalizar compra{% endblock %}
+
+{% block content %}
+<div class="checkout-layout">
+    <h1 style="margin-bottom: 1.5rem;"> Finalizar compra</h1>
+
+    <!-- Resumen del carrito -->
+    <div class="checkout-form-section checkout-summary">
+        <h3 style="margin-bottom: 1rem;"> Resumen del pedido</h3>
+        <table style="width:100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border);">
+                    <th style="text-align:left; padding: 0.4rem 0;">Producto</th>
+                    <th style="text-align:right; padding: 0.4rem 0;">Cantidad</th>
+                    <th style="text-align:right; padding: 0.4rem 0;">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart %}
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 0.5rem 0;">
+                            {% if item.is_custom %}
+                                 Impresión personalizada #{{ item.id }}
+                            {% else %}
+                                {{ item.name }}
+                            {% endif %}
+                        </td>
+                        <td style="text-align:right; padding: 0.5rem 0;">{{ item.quantity }}</td>
+                        <td style="text-align:right; padding: 0.5rem 0; font-weight: 600;">{{ item.subtotal }} €</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" style="padding-top: 0.75rem; font-size: 1.1rem;"><strong>TOTAL A PAGAR</strong></td>
+                    <td style="text-align:right; padding-top: 0.75rem; font-size: 1.3rem; font-weight: 900; color: var(--primary);">
+                        {{ cart.get_total_price }} €
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- Formulario de envío -->
+    <div class="checkout-form-section" style="margin-top: 1.5rem;">
+        <h3 style="margin-bottom: 1.5rem;"> Datos de envío</h3>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="direccion">Dirección completa</label>
+                <textarea id="direccion" name="direccion" class="form-control" rows="2"
+                          placeholder="Calle, número, piso..." required>{{ profile.direccion }}</textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="ciudad">Ciudad</label>
+                    <input type="text" id="ciudad" name="ciudad" class="form-control"
+                           value="{{ profile.ciudad }}" placeholder="Ej: Madrid" required>
+                </div>
+                <div class="form-group">
+                    <label for="codigo_postal">Código postal</label>
+                    <input type="text" id="codigo_postal" name="codigo_postal" class="form-control"
+                           value="{{ profile.codigo_postal }}" placeholder="28001" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="notas">Notas para el pedido (opcional)</label>
+                <textarea id="notas" name="notas" class="form-control" rows="2"
+                          placeholder="Instrucciones especiales de impresión, color preferido..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+                <button type="submit" class="btn btn-primary btn-lg">
+                     Confirmar pedido ({{ cart.get_total_price }} €)
+                </button>
+                <a href="{% url 'cart:detail' %}" class="btn btn-secondary btn-lg">← Volver al carrito</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

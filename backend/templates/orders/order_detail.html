@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Pedido #{{ order.id }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'orders:my_orders' %}" style="color: var(--text-muted); font-size: 0.9rem;">← Mis pedidos</a>
+</div>
+
+<div class="page-header">
+    <h1>Pedido #{{ order.id }}</h1>
+    <span class="status-badge status-{{ order.status|lower }}" style="font-size: 0.95rem;">
+        {{ order.get_status_display }}
+    </span>
+</div>
+
+<div class="order-detail-layout">
+
+    <!-- Columna principal -->
+    <div>
+
+        <!-- Progreso visual -->
+        <div class="detail-card">
+            <h3>Estado del pedido</h3>
+            <div class="progress-steps">
+                {% with s=order.status %}
+                    <span class="step {% if s == 'PAID' or s == 'PRINTING' or s == 'SHIPPED' or s == 'DELIVERED' %}done{% endif %}">Pagado</span>
+                    <span class="step {% if s == 'PRINTING' or s == 'SHIPPED' or s == 'DELIVERED' %}done{% endif %}">Imprimiendo</span>
+                    <span class="step {% if s == 'SHIPPED' or s == 'DELIVERED' %}done{% endif %}">Enviado</span>
+                    <span class="step {% if s == 'DELIVERED' %}done{% endif %}">Entregado</span>
+                {% endwith %}
+            </div>
+            <p class="date-info">Última actualización: {{ order.updated_at|date:"d/m/Y" }} a las {{ order.updated_at|time:"H:i" }}</p>
+        </div>
+
+        <!-- Productos del pedido -->
+        <div class="detail-card">
+            <h3>Artículos</h3>
+            <table style="width:100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border);">
+                        <th style="text-align:left; padding: 0.4rem 0;">Producto</th>
+                        <th style="text-align:center; padding: 0.4rem 0;">Cant.</th>
+                        <th style="text-align:right; padding: 0.4rem 0;">Precio unit.</th>
+                        <th style="text-align:right; padding: 0.4rem 0;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order.items.all %}
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.6rem 0;">
+                                {% if item.product %}
+                                    {{ item.product.name }}
+                                {% else %}
+                                     Impresión personalizada #{{ item.custom_stl_id }}
+                                {% endif %}
+                            </td>
+                            <td style="text-align:center; padding: 0.6rem 0;">{{ item.quantity }}</td>
+                            <td style="text-align:right; padding: 0.6rem 0;">{{ item.price_at_purchase }} €</td>
+                            <td style="text-align:right; padding: 0.6rem 0; font-weight: 600;">{{ item.subtotal }} €</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" style="padding-top: 0.75rem; font-size: 1.05rem;"><strong>Total</strong></td>
+                        <td style="text-align:right; padding-top: 0.75rem; font-size: 1.2rem; font-weight: 900; color: var(--primary);">
+                            {{ order.total_price }} €
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        {% if order.notas %}
+            <div class="detail-card">
+                <h3>Notas del pedido</h3>
+                <p style="color: var(--text-muted);">{{ order.notas }}</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Columna lateral: datos de envío -->
+    <div>
+        <div class="detail-card">
+            <h3>Dirección de envío</h3>
+            <p><strong>{{ request.user.get_full_name|default:request.user.username }}</strong></p>
+            <p>{{ order.direccion_envio }}</p>
+            <p>{{ order.ciudad_envio }}, {{ order.codigo_postal_envio }}</p>
+        </div>
+
+        <div class="detail-card">
+            <h3>Fechas</h3>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">
+                 Creado: {{ order.created_at|date:"d/m/Y H:i" }}<br>
+                 Actualizado: {{ order.updated_at|date:"d/m/Y H:i" }}
+            </p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

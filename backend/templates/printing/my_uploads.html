@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Mis archivos STL{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1> Mis archivos STL</h1>
+    <a href="{% url 'printing:upload' %}" class="btn btn-primary">+ Subir nuevo</a>
+</div>
+
+{% if uploads %}
+    <div class="orders-list">
+        {% for stl in uploads %}
+            <div class="order-card" style="border-left-color:
+                {% if stl.status == 'CALCULATED' %}var(--success)
+                {% elif stl.status == 'ERROR' %}var(--danger)
+                {% else %}var(--warning){% endif %};">
+
+                <div class="order-header">
+                    <div>
+                        <span class="order-id">{{ stl.nombre_archivo|default:"Sin nombre" }}</span>
+                        <span class="status-badge" style="
+                            background: {% if stl.status == 'CALCULATED' %}#d1f5e0{% elif stl.status == 'ERROR' %}#fde8e8{% else %}#fff3cd{% endif %};
+                            color: {% if stl.status == 'CALCULATED' %}#1a7a45{% elif stl.status == 'ERROR' %}#842029{% else %}#856404{% endif %};">
+                            {{ stl.get_status_display }}
+                        </span>
+                    </div>
+                    {% if stl.calculated_price %}
+                        <span class="order-total">{{ stl.calculated_price }} €</span>
+                    {% endif %}
+                </div>
+
+                <div class="order-date">
+                     Subido el {{ stl.uploaded_at|date:"d/m/Y" }} a las {{ stl.uploaded_at|time:"H:i" }}
+                </div>
+
+                {% if stl.volume_cm3 %}
+                    <div class="order-items" style="display: flex; gap: 2rem; margin-top: 0.5rem; font-size: 0.88rem; color: var(--text-muted);">
+                        <span> Volumen: <strong>{{ stl.volume_cm3 }} cm³</strong></span>
+                        <span> Peso: <strong>{{ stl.estimated_weight_gr }} g</strong></span>
+                        <span> Precio: <strong>{{ stl.calculated_price }} €</strong></span>
+                    </div>
+                {% endif %}
+
+                {% if stl.status == 'CALCULATED' %}
+                    <div style="margin-top: 0.75rem;">
+                        <a href="{% url 'printing:confirm' stl.pk %}" class="btn btn-sm btn-outline">
+                             Añadir al carrito
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+{% else %}
+    <div style="text-align: center; padding: 4rem 0; color: var(--text-muted);">
+        <div style="font-size: 4rem; margin-bottom: 1rem;"></div>
+        <h2 style="margin-bottom: 0.5rem;">No has subido ningún archivo todavía</h2>
+        <p>Sube tu primer archivo STL y te calculamos el precio al instante.</p>
+        <a href="{% url 'printing:upload' %}" class="btn btn-primary" style="margin-top: 1.5rem;">
+             Subir mi primer diseño
+        </a>
+    </div>
+{% endif %}
+{% endblock %}

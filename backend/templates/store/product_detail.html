@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block extra_head %}
+{% if stl_url %}
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
+
+<style>
+/* ── Visor 3D ────────────────────────────────────────────── */
+.viewer-wrapper {
+    position: relative;
+    width: 100%;
+    height: 440px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: #0d1117;
+}
+#threejs-container { width: 100%; height: 100%; }
+
+/* Overlay de carga */
+#viewer-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #0d1117;
+    color: rgba(255,255,255,0.75);
+    gap: 0.75rem;
+    transition: opacity 0.4s;
+    pointer-events: none;
+}
+#viewer-overlay.hidden { opacity: 0; }
+
+.load-bar-track {
+    width: 180px; height: 3px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px; overflow: hidden;
+}
+.load-bar-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 2px;
+    transition: width 0.2s;
+    width: 0%;
+}
+
+/* Toolbar flotante */
+.viewer-toolbar {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: rgba(13,17,23,0.85);
+    backdrop-filter: blur(8px);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    z-index: 10;
+}
+.ctrl-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.8);
+    padding: 4px 11px;
+    border-radius: 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.ctrl-btn:hover { background: rgba(255,255,255,0.12); color: white; }
+.ctrl-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+.toolbar-sep { width: 1px; background: rgba(255,255,255,0.15); height: 18px; margin: 0 2px; }
+
+/* Puntos de color */
+.color-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+}
+.color-dot:hover { transform: scale(1.25); }
+.color-dot.selected { border-color: white; transform: scale(1.15); }
+
+/* Stats del modelo */
+.model-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+.stat-box {
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.5rem;
+    text-align: center;
+}
+.stat-label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.2rem;
+}
+.stat-value { font-size: 0.88rem; font-weight: 800; color: var(--primary); }
+
+.viewer-hint {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    margin-top: 0.4rem;
+}
+</style>
+{% endif %}
+{% endblock %}
+
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'store:catalog' %}" style="color: var(--text-muted); font-size: 0.9rem;">← Volver al catálogo</a>
+</div>
+
+<div class="product-detail-layout">
+
+    <!-- ══ Columna izquierda: visor / imagen ══════════════ -->
+    <div class="product-visual">
+
+        {% if stl_url %}
+
+            <div class="viewer-wrapper">
+                <div id="threejs-container"></div>
+
+                <!-- Overlay mientras carga -->
+                <div id="viewer-overlay">
+                    <span style="font-size:2rem;"></span>
+                    <span style="font-weight:600;">Cargando modelo 3D…</span>
+                    <div class="load-bar-track">
+                        <div class="load-bar-fill" id="loadBar"></div>
+                    </div>
+                    <span id="loadPct" style="font-size:0.8rem;">0 %</span>
+                </div>
+
+                <!-- Toolbar de controles -->
+                <div class="viewer-toolbar" id="viewerToolbar" style="display:none;">
+                    <button class="ctrl-btn" id="btnRotate" title="Activar autorotación">↻ Rotar</button>
+                    <button class="ctrl-btn" id="btnWire"   title="Ver malla de triángulos"> Malla</button>
+                    <button class="ctrl-btn" id="btnReset"  title="Restablecer cámara">⊙ Centrar</button>
+                    <div class="toolbar-sep"></div>
+                    <!-- Paleta de colores -->
+                    <div style="display:flex;gap:5px;align-items:center;" title="Color del modelo">
+                        <div class="color-dot selected" style="background:#0066ff;" data-color="0x0066ff"></div>
+                        <div class="color-dot"          style="background:#e63946;" data-color="0xe63946"></div>
+                        <div class="color-dot"          style="background:#2ec27e;" data-color="0x2ec27e"></div>
+                        <div class="color-dot"          style="background:#f4a522;" data-color="0xf4a522"></div>
+                        <div class="color-dot"          style="background:#c0c0c0;" data-color="0xc0c0c0"></div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="viewer-hint"> Arrastrar = rotar &nbsp;·&nbsp; Rueda = zoom &nbsp;·&nbsp; Clic derecho = desplazar</p>
+
+            <!-- Stats que se rellenan desde JS -->
+            <div class="model-stats" id="modelStats" style="display:none;">
+                <div class="stat-box">
+                    <span class="stat-label">Triángulos</span>
+                    <span class="stat-value" id="statTri">—</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Dimensiones (mm)</span>
+                    <span class="stat-value" id="statDim">—</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Volumen</span>
+                    <span class="stat-value" id="statVol">
+                        {% if product.stl_model.volume_cm3 %}{{ product.stl_model.volume_cm3 }} cm³{% else %}—{% endif %}
+                    </span>
+                </div>
+            </div>
+
+        {% elif product.imagen %}
+            <img src="{{ product.imagen.url }}" alt="{{ product.name }}" class="detail-img">
+        {% else %}
+            <div class="detail-img-placeholder">
+                {% if product.tiene_stl %}{% else %}{% endif %}
+            </div>
+        {% endif %}
+
+    </div><!-- /product-visual -->
+
+
+    <!-- ══ Columna derecha: info y compra ════════════════ -->
+    <div class="product-info-panel">
+        <span class="product-category-badge">{{ product.category.name }}</span>
+        <h1 class="detail-title">{{ product.name }}</h1>
+        <p class="detail-desc">{{ product.description }}</p>
+
+        <div class="price-box">
+            <span class="big-price">{{ product.base_price }} €</span>
+            {% if product.stock > 0 %}
+                <span class="stock-ok"> En stock ({{ product.stock }} uds.)</span>
+            {% else %}
+                <span class="stock-out"> Sin stock</span>
+            {% endif %}
+        </div>
+
+        {% if user.is_authenticated %}
+            {% if product.stock > 0 %}
+                <form method="post" action="{% url 'cart:add' %}" class="add-cart-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="item_id" value="{{ product.pk }}">
+                    <input type="hidden" name="is_custom" value="false">
+                    <div class="qty-selector">
+                        <label for="quantity"><strong>Cantidad:</strong></label>
+                        <input type="number" id="quantity" name="quantity"
+                               value="1" min="1" max="{{ product.stock }}" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                         Añadir al carrito
+                    </button>
+                </form>
+            {% else %}
+                <button class="btn btn-secondary btn-lg" disabled>Sin stock</button>
+            {% endif %}
+        {% else %}
+            <a href="{% url 'users:login' %}" class="btn btn-outline btn-lg">
+                Inicia sesión para comprar
+            </a>
+        {% endif %}
+
+        {% if product.tiene_stl %}
+            <div style="border-top:1px solid var(--border); padding-top:1rem; margin-top:0.5rem;">
+                <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:0.5rem;">
+                    ¿Tienes tu propio diseño? Sube tu STL y te lo imprimimos.
+                </p>
+                <a href="{% url 'printing:upload' %}" class="btn btn-outline">
+                     Imprimir mi diseño
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+
+{% block extra_scripts %}
+{% if stl_url %}
+<script type="module">
+import * as THREE        from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { STLLoader }     from 'three/addons/loaders/STLLoader.js';
+
+/* ── DOM ─────────────────────────────────────────────────── */
+const container  = document.getElementById('threejs-container');
+const overlay    = document.getElementById('viewer-overlay');
+const loadBar    = document.getElementById('loadBar');
+const loadPct    = document.getElementById('loadPct');
+const toolbar    = document.getElementById('viewerToolbar');
+const statsPanel = document.getElementById('modelStats');
+
+/* ── Escena ──────────────────────────────────────────────── */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d1117);
+scene.fog = new THREE.Fog(0x0d1117, 2000, 8000);
+
+/* ── Cámara ──────────────────────────────────────────────── */
+const camera = new THREE.PerspectiveCamera(
+    45, container.clientWidth / container.clientHeight, 0.1, 20000
+);
+
+/* ── Renderer ────────────────────────────────────────────── */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+/* ── Controles ───────────────────────────────────────────── */
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping   = true;
+controls.dampingFactor   = 0.07;
+controls.autoRotate      = false;
+controls.autoRotateSpeed = 1.8;
+
+/* ── Iluminación ─────────────────────────────────────────── */
+scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
+keyLight.position.set(200, 300, 200);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
+scene.add(keyLight);
+
+const fillLight = new THREE.DirectionalLight(0x3366ff, 0.5);
+fillLight.position.set(-200, 80, -150);
+scene.add(fillLight);
+
+const rimLight = new THREE.DirectionalLight(0x00c8ff, 0.3);
+rimLight.position.set(0, -100, -300);
+scene.add(rimLight);
+
+/* ── Cuadrícula ──────────────────────────────────────────── */
+const grid = new THREE.GridHelper(800, 30, 0x1a2040, 0x131a2e);
+scene.add(grid);
+
+/* ── Materiales ──────────────────────────────────────────── */
+const solidMat = new THREE.MeshPhongMaterial({
+    color: 0x0066ff, specular: 0x224488, shininess: 70,
+    side: THREE.DoubleSide,
+});
+const wireMat = new THREE.MeshBasicMaterial({
+    color: 0x00c8ff, wireframe: true,
+});
+
+/* ── Estado ──────────────────────────────────────────────── */
+let modelMesh      = null;
+let isWireframe    = false;
+let savedCamPos    = null;
+let savedTarget    = null;
+
+/* ── Carga STL ───────────────────────────────────────────── */
+const loader = new STLLoader();
+loader.load(
+    '{{ stl_url }}',
+
+    function onLoad(geometry) {
+        geometry.computeVertexNormals();
+        geometry.computeBoundingBox();
+
+        const mesh = new THREE.Mesh(geometry, solidMat);
+        mesh.castShadow = mesh.receiveShadow = true;
+
+        // Centrar y apoyar en cuadrícula
+        const box    = geometry.boundingBox;
+        const center = new THREE.Vector3();
+        const size   = new THREE.Vector3();
+        box.getCenter(center);
+        box.getSize(size);
+        mesh.position.set(-center.x, -box.min.y, -center.z);
+
+        scene.add(mesh);
+        modelMesh = mesh;
+
+        // Encuadrar cámara
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const dist   = maxDim * 2.4;
+        camera.position.set(dist * 0.55, dist * 0.45, dist);
+        camera.near = maxDim * 0.001;
+        camera.far  = maxDim * 200;
+        camera.updateProjectionMatrix();
+
+        const target = new THREE.Vector3(0, size.y * 0.4, 0);
+        controls.target.copy(target);
+        controls.minDistance = maxDim * 0.05;
+        controls.maxDistance = maxDim * 15;
+        controls.update();
+
+        savedCamPos = camera.position.clone();
+        savedTarget = target.clone();
+
+        // Escalar cuadrícula
+        grid.scale.setScalar(Math.max(1, maxDim / 80));
+
+        // Rellenar estadísticas
+        const triCount = geometry.index
+            ? geometry.index.count / 3
+            : geometry.attributes.position.count / 3;
+
+        document.getElementById('statTri').textContent =
+            Math.round(triCount).toLocaleString('es-ES');
+        document.getElementById('statDim').textContent =
+            `${size.x.toFixed(0)}×${size.y.toFixed(0)}×${size.z.toFixed(0)}`;
+
+        // Mostrar UI
+        overlay.classList.add('hidden');
+        setTimeout(() => overlay.style.display = 'none', 420);
+        toolbar.style.display     = 'flex';
+        statsPanel.style.display  = 'grid';
+    },
+
+    function onProgress(xhr) {
+        if (xhr.total) {
+            const pct = Math.round(xhr.loaded / xhr.total * 100);
+            loadBar.style.width  = pct + '%';
+            loadPct.textContent  = pct + ' %';
+        }
+    },
+
+    function onError(err) {
+        overlay.innerHTML = `
+            <span style="font-size:2rem"></span>
+            <span style="font-weight:600">Error al cargar el modelo</span>
+            <span style="font-size:0.8rem;opacity:0.6">Verifica que el STL es válido</span>`;
+        console.error('STLLoader:', err);
+    }
+);
+
+/* ── Bucle de animación ──────────────────────────────────── */
+(function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+})();
+
+/* ── Resize ──────────────────────────────────────────────── */
+window.addEventListener('resize', () => {
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+/* ══════════════════════════════════════════════════════════
+   CONTROLES DE TOOLBAR
+══════════════════════════════════════════════════════════ */
+
+// Autorotación
+document.getElementById('btnRotate').addEventListener('click', function () {
+    controls.autoRotate = !controls.autoRotate;
+    this.classList.toggle('active', controls.autoRotate);
+});
+
+// Wireframe
+document.getElementById('btnWire').addEventListener('click', function () {
+    if (!modelMesh) return;
+    isWireframe = !isWireframe;
+    modelMesh.material = isWireframe ? wireMat : solidMat;
+    this.classList.toggle('active', isWireframe);
+});
+
+// Centrar cámara
+document.getElementById('btnReset').addEventListener('click', function () {
+    if (!savedCamPos) return;
+    camera.position.copy(savedCamPos);
+    controls.target.copy(savedTarget);
+    controls.autoRotate = false;
+    document.getElementById('btnRotate').classList.remove('active');
+    controls.update();
+});
+
+// Selector de color
+document.querySelectorAll('.color-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+        if (isWireframe) return;          // En wireframe no tiene efecto
+        solidMat.color.setHex(parseInt(dot.dataset.color, 16));
+        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+        dot.classList.add('selected');
+    });
+});
+</script>
+{% endif %}
+{% endblock %}
